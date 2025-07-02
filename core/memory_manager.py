@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 from typing import List, Dict, Optional, Any
 from pathlib import Path
 import logging
+import time
 
 from pinecone import Pinecone, ServerlessSpec
 from langchain_pinecone import PineconeVectorStore
@@ -41,7 +42,15 @@ class MemoryManager:
         self.working_memory_limit = 20  # Max messages per channel
         
         # Layer 2: Episodic Memory (Pinecone)
-        self._init_pinecone()
+        self.vector_store = None
+        self.pinecone_ready = False
+        self.pinecone_init_task = None
+        
+        # Start Pinecone initialization in background
+        if os.getenv("PINECONE_API_KEY"):
+            self.pinecone_init_task = asyncio.create_task(self._async_init_pinecone())
+        else:
+            logger.warning("PINECONE_API_KEY not set. Episodic memory will be disabled.")
         
         # Layer 3: Semantic Memory (JSON/SQLite)
         self.data_dir = Path("data")
@@ -64,43 +73,111 @@ class MemoryManager:
             return
             
         try:
+            logger.info("Starting Pinecone initialization...")
+            
             # Initialize Pinecone
             pc = Pinecone(api_key=api_key)
+            logger.info("Pinecone client created")
             
             index_name = os.getenv("PINECONE_INDEX_NAME", "lamy-memories")
             
             # Create index if it doesn't exist
             existing_indexes = [index_info["name"] for index_info in pc.list_indexes()]
+            logger.info(f"Existing indexes: {existing_indexes}")
+            
             if index_name not in existing_indexes:
+                logger.info(f"Creating new index: {index_name}")
+                
+                # Pinecone serverless regions
+                region = os.getenv("PINECONE_ENVIRONMENT", "us-east-1")
+                    
                 pc.create_index(
                     name=index_name,
                     dimension=384,  # Dimension for all-MiniLM-L6-v2 embeddings
                     metric='cosine',
                     spec=ServerlessSpec(
                         cloud='aws',
-                        region=os.getenv("PINECONE_ENVIRONMENT", "us-east-1")
+                        region=region
                     )
                 )
+                logger.info(f"Index {index_name} created, waiting for it to be ready...")
                 
-            # Initialize embeddings (using local model for cost efficiency)
+                # Wait for index to be ready
+                max_retries = 30
+                for i in range(max_retries):
+                    try:
+                        index_info = pc.describe_index(index_name)
+                        if index_info.status.ready:
+                            logger.info(f"Index {index_name} is ready!")
+                            break
+                    except Exception:
+                        pass
+                    
+                    if i < max_retries - 1:
+                        time.sleep(2)
+                    else:
+                        logger.error(f"Index {index_name} failed to become ready after {max_retries * 2} seconds")
+                        raise Exception("Index creation timeout")
+                
+            else:
+                logger.info(f"Using existing index: {index_name}")
+                
+            # Initialize embeddings with async-friendly approach
+            logger.info("Initializing HuggingFace embeddings...")
+            logger.info("This may take a while on first run as the model needs to be downloaded...")
+            
+            # Set cache directory to avoid permission issues
+            cache_dir = os.path.join(os.path.dirname(__file__), "..", "models_cache")
+            os.makedirs(cache_dir, exist_ok=True)
+            
             embeddings = HuggingFaceEmbeddings(
                 model_name="sentence-transformers/all-MiniLM-L6-v2",
                 model_kwargs={'device': 'cpu'},
-                encode_kwargs={'normalize_embeddings': True}
+                encode_kwargs={'normalize_embeddings': True},
+                cache_folder=cache_dir
             )
+            logger.info("HuggingFace embeddings initialized successfully")
                 
             # Get the index
             index = pc.Index(index_name)
+            logger.info(f"Connected to Pinecone index: {index_name}")
             
             # Initialize vector store
             self.vector_store = PineconeVectorStore(
                 index=index,
                 embedding=embeddings
             )
+            logger.info("Pinecone vector store initialized successfully")
                 
         except Exception as e:
-            logger.error(f"Failed to initialize Pinecone: {e}")
+            logger.error(f"Failed to initialize Pinecone: {e}", exc_info=True)
             self.vector_store = None
+        
+    async def _async_init_pinecone(self):
+        """Asynchronously initialize Pinecone vector database connection."""
+        try:
+            # Run the sync initialization in a thread pool to avoid blocking
+            await asyncio.to_thread(self._init_pinecone)
+            self.pinecone_ready = True
+            logger.info("Pinecone initialization completed in background")
+        except Exception as e:
+            logger.error(f"Background Pinecone initialization failed: {e}", exc_info=True)
+            self.pinecone_ready = False
+            
+    async def wait_for_pinecone(self, timeout: float = 30.0) -> bool:
+        """Wait for Pinecone to be ready with a timeout."""
+        if self.pinecone_ready:
+            return True
+            
+        if not self.pinecone_init_task:
+            return False
+            
+        try:
+            await asyncio.wait_for(self.pinecone_init_task, timeout=timeout)
+            return self.pinecone_ready
+        except asyncio.TimeoutError:
+            logger.warning(f"Pinecone initialization timed out after {timeout} seconds")
+            return False
         
     def _load_core_identity(self) -> CoreIdentity:
         """Load core identity from JSON file or create default."""
@@ -183,6 +260,14 @@ class MemoryManager:
         Returns:
             The ID of the stored memory
         """
+        # Wait for Pinecone to be ready (with timeout)
+        if not self.pinecone_ready:
+            logger.info("Waiting for Pinecone initialization...")
+            ready = await self.wait_for_pinecone(timeout=10.0)
+            if not ready:
+                logger.warning("Pinecone not ready. Skipping episodic memory storage.")
+                return ""
+                
         if not self.vector_store:
             logger.warning("Vector store not initialized. Cannot add episodic memory.")
             return ""
@@ -230,6 +315,14 @@ class MemoryManager:
         Returns:
             List of matching episodic memories
         """
+        # Wait for Pinecone to be ready (with timeout)
+        if not self.pinecone_ready:
+            logger.info("Waiting for Pinecone initialization for search...")
+            ready = await self.wait_for_pinecone(timeout=5.0)
+            if not ready:
+                logger.warning("Pinecone not ready. Returning empty search results.")
+                return []
+                
         if not self.vector_store:
             return []
             
