@@ -64,40 +64,40 @@ class MemoryManager:
             return
             
         try:
-        # Initialize Pinecone
-        pc = Pinecone(api_key=api_key)
-        
-        index_name = os.getenv("PINECONE_INDEX_NAME", "lamy-memories")
-        
-        # Create index if it doesn't exist
+            # Initialize Pinecone
+            pc = Pinecone(api_key=api_key)
+            
+            index_name = os.getenv("PINECONE_INDEX_NAME", "lamy-memories")
+            
+            # Create index if it doesn't exist
             existing_indexes = [index_info["name"] for index_info in pc.list_indexes()]
             if index_name not in existing_indexes:
-            pc.create_index(
-                name=index_name,
-                dimension=384,  # Dimension for all-MiniLM-L6-v2 embeddings
-                metric='cosine',
-                spec=ServerlessSpec(
-                    cloud='aws',
-                    region=os.getenv("PINECONE_ENVIRONMENT", "us-east-1")
+                pc.create_index(
+                    name=index_name,
+                    dimension=384,  # Dimension for all-MiniLM-L6-v2 embeddings
+                    metric='cosine',
+                    spec=ServerlessSpec(
+                        cloud='aws',
+                        region=os.getenv("PINECONE_ENVIRONMENT", "us-east-1")
+                    )
                 )
+                
+            # Initialize embeddings (using local model for cost efficiency)
+            embeddings = HuggingFaceEmbeddings(
+                model_name="sentence-transformers/all-MiniLM-L6-v2",
+                model_kwargs={'device': 'cpu'},
+                encode_kwargs={'normalize_embeddings': True}
             )
-            
-        # Initialize embeddings (using local model for cost efficiency)
-        embeddings = HuggingFaceEmbeddings(
-            model_name="sentence-transformers/all-MiniLM-L6-v2",
-            model_kwargs={'device': 'cpu'},
-            encode_kwargs={'normalize_embeddings': True}
-        )
-            
+                
             # Get the index
             index = pc.Index(index_name)
-        
-        # Initialize vector store
-        self.vector_store = PineconeVectorStore(
+            
+            # Initialize vector store
+            self.vector_store = PineconeVectorStore(
                 index=index,
                 embedding=embeddings
-        )
-            
+            )
+                
         except Exception as e:
             logger.error(f"Failed to initialize Pinecone: {e}")
             self.vector_store = None
