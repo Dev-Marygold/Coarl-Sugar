@@ -40,7 +40,7 @@ class LamyBot(commands.Bot):
         
         # Initialize bot
         super().__init__(
-            command_prefix="!",  # Not used but required
+            command_prefix=lambda bot, message: [],  # No prefix commands
             intents=intents,
             help_command=None,  # Disable default help command
             activity=discord.Activity(
