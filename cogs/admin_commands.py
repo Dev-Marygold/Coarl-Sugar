@@ -39,30 +39,20 @@ class AdminCommands(commands.Cog):
         """Check if the user is the developer."""
         return interaction.user.id == self.developer_id
         
-    @app_commands.command(name="status", description="봇의 운영 상태를 확인합니다 (봇 제작자 전용)")
-    @app_commands.default_permissions(administrator=True)
+    @app_commands.command(name="status", description="봇의 운영 상태를 확인합니다")
     async def status(self, interaction: discord.Interaction):
         """
         Show bot operational status and memory statistics.
-        Developer only command.
+        모든 사용자가 사용할 수 있는 명령어로 변경.
         """
-        if not self.is_developer(interaction):
-            await interaction.response.send_message(
-                "음... 네가 이걸 쓸 수 있는 사람은 아닌 것 같은데. 우리 각자 할 수 있는 일이 있잖아?", 
-                ephemeral=True
-            )
-            return
-            
         # Get memory stats
         stats = self.orchestrator.get_memory_stats()
-        
         # Create status embed
         embed = discord.Embed(
             title="라미 시스템 상태",
             color=discord.Color.dark_grey(),
             timestamp=datetime.utcnow()
         )
-        
         # Bot info
         embed.add_field(
             name="봇 정보",
@@ -72,7 +62,6 @@ class AdminCommands(commands.Cog):
                   f"**지연 시간:** {round(self.bot.latency * 1000)}ms",
             inline=True
         )
-        
         # Memory stats
         embed.add_field(
             name="메모리 시스템",
@@ -81,7 +70,6 @@ class AdminCommands(commands.Cog):
                   f"**일화 기억:** {'활성화' if stats['episodic_memory_enabled'] else '비활성화'}",
             inline=True
         )
-        
         # Core identity
         identity = stats['core_identity']
         embed.add_field(
@@ -91,12 +79,10 @@ class AdminCommands(commands.Cog):
                   f"**창조자:** {identity['creator']}",
             inline=False
         )
-        
         await interaction.response.send_message(embed=embed, ephemeral=True)
         
-    @app_commands.command(name="memory-view", description="최근 일화 기억을 확인합니다 (봇 제작자 전용)")
+    @app_commands.command(name="memory-view", description="최근 일화 기억을 확인합니다")
     @app_commands.describe(user="특정 사용자의 기억만 필터링 (선택사항)")
-    @app_commands.default_permissions(administrator=True)
     async def memory_view(
         self, 
         interaction: discord.Interaction,
@@ -104,32 +90,21 @@ class AdminCommands(commands.Cog):
     ):
         """
         View recent episodic memories, optionally filtered by user.
-        Developer only command.
+        모든 사용자가 사용할 수 있는 명령어로 변경.
         """
-        if not self.is_developer(interaction):
-            await interaction.response.send_message(
-                "음... 네가 이걸 쓸 수 있는 사람은 아닌 것 같은데. 우리 각자 할 수 있는 일이 있잖아?", 
-                ephemeral=True
-            )
-            return
-            
         await interaction.response.defer(ephemeral=True)
-        
         # Search for memories
         query = MemorySearchQuery(
             user_id=str(user.id) if user else None,
             limit=10
         )
-        
         memories = await self.orchestrator.memory_manager.search_episodic_memory(query)
-        
         if not memories:
             await interaction.followup.send(
                 "기억이라... 아직 남아있는 게 없네. 시간이 흐르면 쌓이겠지, 아마도.", 
                 ephemeral=True
             )
             return
-            
         # Create embed for memories
         embed = discord.Embed(
             title=f"최근 일화 기억",
@@ -137,7 +112,6 @@ class AdminCommands(commands.Cog):
             color=discord.Color.dark_blue(),
             timestamp=datetime.utcnow()
         )
-        
         for i, memory in enumerate(memories[:5], 1):
             embed.add_field(
                 name=f"{i}. {memory.user_name} ({memory.timestamp.strftime('%Y-%m-%d %H:%M')})",
@@ -146,26 +120,16 @@ class AdminCommands(commands.Cog):
                       f"**관련성:** {memory.relevance_score:.2f}",
                 inline=False
             )
-            
         await interaction.followup.send(embed=embed, ephemeral=True)
         
-    @app_commands.command(name="memory-wipe-thread", description="현재 채널의 작업 기억을 초기화합니다 (봇 제작자 전용)")
-    @app_commands.default_permissions(administrator=True)
+    @app_commands.command(name="memory-wipe-thread", description="현재 채널의 작업 기억을 초기화합니다")
     async def memory_wipe_thread(self, interaction: discord.Interaction):
         """
         Clear working memory for the current channel.
-        Developer only command.
+        모든 사용자가 사용할 수 있는 명령어로 변경.
         """
-        if not self.is_developer(interaction):
-            await interaction.response.send_message(
-                "이건 내 창조자만 쓸 수 있는 거야. 뭐, 네가 나쁘다는 건 아니지만... 규칙이라는 게 있잖아.", 
-                ephemeral=True
-            )
-            return
-            
         channel_id = str(interaction.channel_id)
         self.orchestrator.clear_working_memory(channel_id)
-        
         await interaction.response.send_message(
             f"이 채널의 기억을 지웠어. 새로운 시작이라고 생각해볼까? 아니면 그냥 망각일까...",
             ephemeral=True
