@@ -93,7 +93,7 @@ class ChatHandler(commands.Cog):
             except Exception as e:
                 logger.error(f"Error processing message: {str(e)}")
                 await message.reply(
-                    "또 에러네... 뭐, 예상 못 한 건 아니지만.",
+                    "아... 뭔가 꼬였나봐. 완벽하지 않은 게 어디 나뿐이겠어?",
                     mention_author=False
                 )
     

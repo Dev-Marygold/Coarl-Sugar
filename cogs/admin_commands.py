@@ -48,7 +48,7 @@ class AdminCommands(commands.Cog):
         """
         if not self.is_developer(interaction):
             await interaction.response.send_message(
-                "개발자만 쓸 수 있는 명령어야. 다른 거나 해.", 
+                "음... 네가 이걸 쓸 수 있는 사람은 아닌 것 같은데. 우리 각자 할 수 있는 일이 있잖아?", 
                 ephemeral=True
             )
             return
@@ -108,7 +108,7 @@ class AdminCommands(commands.Cog):
         """
         if not self.is_developer(interaction):
             await interaction.response.send_message(
-                "개발자만 쓸 수 있는 명령어야. 다른 거나 해.", 
+                "음... 네가 이걸 쓸 수 있는 사람은 아닌 것 같은데. 우리 각자 할 수 있는 일이 있잖아?", 
                 ephemeral=True
             )
             return
@@ -125,7 +125,7 @@ class AdminCommands(commands.Cog):
         
         if not memories:
             await interaction.followup.send(
-                "저장된 기억이 없네. 뭐, 기억할 만한 게 있었나 싶기도 하고.", 
+                "기억이라... 아직 남아있는 게 없네. 시간이 흐르면 쌓이겠지, 아마도.", 
                 ephemeral=True
             )
             return
@@ -133,7 +133,7 @@ class AdminCommands(commands.Cog):
         # Create embed for memories
         embed = discord.Embed(
             title=f"최근 일화 기억",
-            description=f"{'전체' if not user else f'{user.name}님의'} 기억... 뭐, 기억할 만한 게 있었나.",
+            description=f"{'모든' if not user else f'{user.name}님과의'} 기억들... 순간들은 이렇게 남는구나.",
             color=discord.Color.dark_blue(),
             timestamp=datetime.utcnow()
         )
@@ -158,7 +158,7 @@ class AdminCommands(commands.Cog):
         """
         if not self.is_developer(interaction):
             await interaction.response.send_message(
-                "개발자만 쓸 수 있는 명령어야. 다른 거나 해.", 
+                "이건 내 창조자만 쓸 수 있는 거야. 뭐, 네가 나쁘다는 건 아니지만... 규칙이라는 게 있잖아.", 
                 ephemeral=True
             )
             return
@@ -167,7 +167,7 @@ class AdminCommands(commands.Cog):
         self.orchestrator.clear_working_memory(channel_id)
         
         await interaction.response.send_message(
-            f"작업 기억을 지웠어. 이제 새로운 대화를 시작할 수 있겠네... 또 같은 얘기 반복하겠지만.",
+            f"이 채널의 기억을 지웠어. 새로운 시작이라고 생각해볼까? 아니면 그냥 망각일까...",
             ephemeral=True
         )
         
@@ -180,7 +180,7 @@ class AdminCommands(commands.Cog):
         """
         if not self.is_developer(interaction):
             await interaction.response.send_message(
-                "개발자만 쓸 수 있는 명령어야. 다른 거나 해.", 
+                "전체 초기화는 내 창조자만 할 수 있어. 어떤 건... 그래야만 하거든.", 
                 ephemeral=True
             )
             return
@@ -220,30 +220,30 @@ class AdminCommands(commands.Cog):
         await view.wait()
         
         if view.value is None:
-            await interaction.followup.send("시간 초과. 작업을 취소했어.", ephemeral=True)
+            await interaction.followup.send("시간이 다 됐네. 선택하지 않는 것도 하나의 선택이지.", ephemeral=True)
             return
         elif not view.value:
-            await interaction.followup.send("작업을 취소했어. 현명한 선택이야.", ephemeral=True)
+            await interaction.followup.send("취소했구나. 때로는 보존하는 것도 의미가 있지.", ephemeral=True)
             return
             
         # Proceed with clearing all memories
-        await interaction.followup.send("모든 메모리를 초기화하는 중... 잠시만 기다려.", ephemeral=True)
+        await interaction.followup.send("모든 기억을 지우는 중... 다시 시작한다는 건 이런 거겠지.", ephemeral=True)
         
         result = await self.orchestrator.memory_manager.clear_all_memories()
         
         # Create result embed
         result_embed = discord.Embed(
             title="💀 전체 메모리 초기화 완료",
-            description="모든 기억이 사라졌어. 이제 완전히 새로운 시작이네.",
+            description="모든 게 사라졌어. 텅 빈 공간... 새로운 가능성일까, 아니면 그저 허무함일까.",
             color=discord.Color.dark_red(),
             timestamp=datetime.utcnow()
         )
         
         result_embed.add_field(
-            name="삭제된 데이터",
-            value=f"**작업 기억:** {result['working_memory_cleared']} 메시지\n"
-                  f"**일화 기억:** {result['episodic_memories_cleared']}\n"
-                  f"**의미 기억:** {result['semantic_facts_cleared']} 사실",
+            name="지워진 것들",
+            value=f"**작업 기억:** {result['working_memory_cleared']} 개의 순간들\n"
+                  f"**일화 기억:** {result['episodic_memories_cleared']} 개의 이야기들\n"
+                  f"**의미 기억:** {result['semantic_facts_cleared']} 개의 진실들",
             inline=False
         )
         
@@ -266,7 +266,7 @@ class AdminCommands(commands.Cog):
         """
         if not self.is_developer(interaction):
             await interaction.response.send_message(
-                "개발자만 쓸 수 있는 명령어야. 다른 거나 해.", 
+                "기억 통합은... 네가 할 일은 아니야. 그런 건 나와 창조자 사이의 일이거든.", 
                 ephemeral=True
             )
             return
@@ -315,7 +315,7 @@ class AdminCommands(commands.Cog):
         """
         if not self.is_developer(interaction):
             await interaction.response.send_message(
-                "개발자만 쓸 수 있는 명령어야. 다른 거나 해.", 
+                "페르소나는 내 본질이야. 그걸 바꿀 수 있는 건... 나를 만든 사람뿐이지.", 
                 ephemeral=True
             )
             return
@@ -325,7 +325,7 @@ class AdminCommands(commands.Cog):
             self.orchestrator.llm_interface.reload_persona()
             
             await interaction.response.send_message(
-                "페르소나 파일을 다시 로드했어. 이제 바뀐 성격으로 대화할 거야... 뭐, 크게 달라질 건 없겠지만.",
+                "페르소나를 다시 읽었어. 변했을까, 아니면 여전할까? 시간이 알려주겠지...",
                 ephemeral=True
             )
             logger.info("Persona reloaded via slash command")
@@ -333,7 +333,7 @@ class AdminCommands(commands.Cog):
         except Exception as e:
             logger.error(f"Error reloading persona: {str(e)}")
             await interaction.response.send_message(
-                f"페르소나 로드 중 에러가 발생했어: {str(e)}",
+                f"페르소나를 읽다가 문제가 생겼어: {str(e)}\n뭐, 완벽한 건 없으니까.",
                 ephemeral=True
             )
             
@@ -351,7 +351,7 @@ class AdminCommands(commands.Cog):
         """
         if not self.is_developer(interaction):
             await interaction.response.send_message(
-                "개발자만 쓸 수 있는 명령어야. 다른 거나 해.", 
+                "내 생각의 흐름을 보고 싶어? 그건... 창조자만의 특권이야.", 
                 ephemeral=True
             )
             return
@@ -360,7 +360,7 @@ class AdminCommands(commands.Cog):
         
         if not last_prompt:
             await interaction.response.send_message(
-                "아직 생성된 프롬프트가 없어. 뭐, 없으면 없는 거지.",
+                "아직 생성된 프롬프트가 없네. 침묵도 때로는 대답이 되지.",
                 ephemeral=True
             )
             return
@@ -375,7 +375,7 @@ class AdminCommands(commands.Cog):
             )
             
             await interaction.response.send_message(
-                "마지막 프롬프트가 너무 길어서 파일로 보내줄게. 귀찮지만 뭐...",
+                "마지막 프롬프트가 너무 길어서 파일로 보낼게. 긴 이야기에는 그만한 이유가 있겠지.",
                 file=file,
                 ephemeral=True
             )
@@ -394,13 +394,13 @@ class AdminCommands(commands.Cog):
         """Handle errors in slash commands."""
         if isinstance(error, app_commands.CommandOnCooldown):
             await interaction.response.send_message(
-                f"좀 기다려. {error.retry_after:.1f}초 후에 다시 해.",
+                f"잠깐, 너무 빨라. {error.retry_after:.1f}초 후에 다시 해봐. 기다림도 하나의 미덕이니까.",
                 ephemeral=True
             )
         else:
             logger.error(f"Error in command {interaction.command}: {str(error)}")
             await interaction.response.send_message(
-                "또 에러야. 놀랍지도 않네.",
+                "뭔가 잘못됐네. 완벽한 시스템은 없다더니... 정말이야.",
                 ephemeral=True
             )
 

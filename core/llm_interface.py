@@ -311,7 +311,7 @@ class LLMInterface:
             logger.error(f"Error generating response: {str(e)}")
             # Fallback response maintaining character
             return LLMResponse(
-                content="하... 또 뭔가 잘못됐네. 뭐, 예상 못 한 건 아니지만.",
+                content="아... 뭔가 내 생각이 엉켜버렸나봐. 가끔은 나도 날 이해 못하겠어.",
                 processing_time=(datetime.utcnow() - start_time).total_seconds()
             )
     
@@ -348,7 +348,7 @@ class LLMInterface:
             return response.choices[0].message.content
         except Exception as e:
             logger.error(f"Error summarizing conversation with GPT-4.1: {str(e)}")
-            return "대화 요약 실패"
+            return "대화를 정리하려 했는데... 글쎄, 말로 담기엔 너무 복잡했나봐."
     
     async def extract_facts(self, conversation_summary: str) -> List[Dict[str, Any]]:
         """
@@ -394,7 +394,7 @@ class LLMInterface:
     def _build_memory_context(self, memories: List[EpisodicMemoryItem]) -> str:
         """Build a formatted string of relevant memories."""
         if not memories:
-            return "관련된 과거 기억이 없음. 뭐, 기억할 만한 게 있었을까 싶기도 하고."
+            return "관련된 과거 기억이 없음. 텅 빈 과거... 때로는 그게 더 나을지도."
             
         memory_texts = []
         for memory in memories[:5]:  # Limit to 5 most relevant memories

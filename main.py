@@ -45,7 +45,7 @@ class LamyBot(commands.Bot):
             help_command=None,  # Disable default help command
             activity=discord.Activity(
                 type=discord.ActivityType.watching,
-                name="허무한 세상을..."
+                name="의미를 찾아가는 여정"
             )
         )
         
