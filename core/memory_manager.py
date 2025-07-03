@@ -563,4 +563,64 @@ class MemoryManager:
             "core_identity": self.core_identity.model_dump()
         }
         
-        return stats 
+        return stats
+    
+    async def clear_all_memories(self) -> Dict[str, Any]:
+        """
+        Clear ALL memories from all three layers.
+        This is a destructive operation and should be used with caution.
+        
+        Returns:
+            Dictionary with statistics of what was cleared
+        """
+        result = {
+            "working_memory_cleared": 0,
+            "episodic_memories_cleared": 0,
+            "semantic_facts_cleared": 0,
+            "errors": []
+        }
+        
+        try:
+            # Layer 1: Clear all working memory
+            channel_count = len(self.working_memory)
+            message_count = sum(len(msgs) for msgs in self.working_memory.values())
+            self.working_memory.clear()
+            result["working_memory_cleared"] = message_count
+            logger.info(f"Cleared {message_count} messages from {channel_count} channels in working memory")
+            
+            # Layer 2: Clear episodic memory (Pinecone)
+            if self.pinecone_ready and self.vector_store:
+                try:
+                    # Get Pinecone index and delete all vectors
+                    index_name = os.getenv("PINECONE_INDEX_NAME", "lamy-memories")
+                    pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
+                    index = pc.Index(index_name)
+                    
+                    # Delete all vectors
+                    await asyncio.to_thread(index.delete, delete_all=True)
+                    result["episodic_memories_cleared"] = "all"
+                    logger.info("Cleared all vectors from Pinecone index")
+                except Exception as e:
+                    error_msg = f"Error clearing Pinecone: {str(e)}"
+                    logger.error(error_msg)
+                    result["errors"].append(error_msg)
+            else:
+                logger.warning("Pinecone not initialized, skipping episodic memory clear")
+                
+            # Layer 3: Clear semantic memory (SQLite)
+            async with aiosqlite.connect(self.semantic_db_path) as db:
+                cursor = await db.execute("SELECT COUNT(*) FROM semantic_facts")
+                count = await cursor.fetchone()
+                fact_count = count[0] if count else 0
+                
+                await db.execute("DELETE FROM semantic_facts")
+                await db.commit()
+                result["semantic_facts_cleared"] = fact_count
+                logger.info(f"Cleared {fact_count} semantic facts from database")
+                
+        except Exception as e:
+            error_msg = f"Error during memory clear: {str(e)}"
+            logger.error(error_msg)
+            result["errors"].append(error_msg)
+            
+        return result 

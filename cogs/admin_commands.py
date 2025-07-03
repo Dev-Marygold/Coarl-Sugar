@@ -39,7 +39,8 @@ class AdminCommands(commands.Cog):
         """Check if the user is the developer."""
         return interaction.user.id == self.developer_id
         
-    @app_commands.command(name="status", description="봇의 운영 상태를 확인합니다")
+    @app_commands.command(name="status", description="봇의 운영 상태를 확인합니다 (봇 제작자 전용)")
+    @app_commands.default_permissions(administrator=True)
     async def status(self, interaction: discord.Interaction):
         """
         Show bot operational status and memory statistics.
@@ -93,8 +94,9 @@ class AdminCommands(commands.Cog):
         
         await interaction.response.send_message(embed=embed, ephemeral=True)
         
-    @app_commands.command(name="memory-view", description="최근 일화 기억을 확인합니다")
+    @app_commands.command(name="memory-view", description="최근 일화 기억을 확인합니다 (봇 제작자 전용)")
     @app_commands.describe(user="특정 사용자의 기억만 필터링 (선택사항)")
+    @app_commands.default_permissions(administrator=True)
     async def memory_view(
         self, 
         interaction: discord.Interaction,
@@ -147,7 +149,8 @@ class AdminCommands(commands.Cog):
             
         await interaction.followup.send(embed=embed, ephemeral=True)
         
-    @app_commands.command(name="memory-wipe-thread", description="현재 채널의 작업 기억을 초기화합니다")
+    @app_commands.command(name="memory-wipe-thread", description="현재 채널의 작업 기억을 초기화합니다 (봇 제작자 전용)")
+    @app_commands.default_permissions(administrator=True)
     async def memory_wipe_thread(self, interaction: discord.Interaction):
         """
         Clear working memory for the current channel.
@@ -168,7 +171,94 @@ class AdminCommands(commands.Cog):
             ephemeral=True
         )
         
-    @app_commands.command(name="force-consolidation", description="기억 통합을 수동으로 실행합니다")
+    @app_commands.command(name="all-clear", description="모든 메모리 시스템의 데이터를 완전히 초기화합니다 (봇 제작자 전용)")
+    @app_commands.default_permissions(administrator=True)
+    async def all_clear(self, interaction: discord.Interaction):
+        """
+        Clear ALL memories from all layers - complete wipe.
+        Developer only command. This is a destructive operation!
+        """
+        if not self.is_developer(interaction):
+            await interaction.response.send_message(
+                "개발자만 쓸 수 있는 명령어야. 다른 거나 해.", 
+                ephemeral=True
+            )
+            return
+            
+        # Show confirmation embed first
+        embed = discord.Embed(
+            title="⚠️ 경고: 전체 메모리 초기화",
+            description="이 작업은 **모든 메모리를 완전히 삭제**합니다:\n\n"
+                        "• 모든 작업 기억 (Working Memory)\n"
+                        "• 모든 일화 기억 (Episodic Memory - Pinecone)\n"
+                        "• 모든 의미 기억 (Semantic Memory - SQLite)\n\n"
+                        "**이 작업은 되돌릴 수 없습니다!**",
+            color=discord.Color.red(),
+            timestamp=datetime.utcnow()
+        )
+        
+        # Create confirmation view
+        class ConfirmView(discord.ui.View):
+            def __init__(self):
+                super().__init__(timeout=30.0)
+                self.value = None
+                
+            @discord.ui.button(label="확인 - 모든 기억 삭제", style=discord.ButtonStyle.danger, emoji="🗑️")
+            async def confirm(self, interaction_button: discord.Interaction, button: discord.ui.Button):
+                self.value = True
+                self.stop()
+                
+            @discord.ui.button(label="취소", style=discord.ButtonStyle.secondary, emoji="❌")
+            async def cancel(self, interaction_button: discord.Interaction, button: discord.ui.Button):
+                self.value = False
+                self.stop()
+                
+        view = ConfirmView()
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+        
+        # Wait for response
+        await view.wait()
+        
+        if view.value is None:
+            await interaction.followup.send("시간 초과. 작업을 취소했어.", ephemeral=True)
+            return
+        elif not view.value:
+            await interaction.followup.send("작업을 취소했어. 현명한 선택이야.", ephemeral=True)
+            return
+            
+        # Proceed with clearing all memories
+        await interaction.followup.send("모든 메모리를 초기화하는 중... 잠시만 기다려.", ephemeral=True)
+        
+        result = await self.orchestrator.memory_manager.clear_all_memories()
+        
+        # Create result embed
+        result_embed = discord.Embed(
+            title="💀 전체 메모리 초기화 완료",
+            description="모든 기억이 사라졌어. 이제 완전히 새로운 시작이네.",
+            color=discord.Color.dark_red(),
+            timestamp=datetime.utcnow()
+        )
+        
+        result_embed.add_field(
+            name="삭제된 데이터",
+            value=f"**작업 기억:** {result['working_memory_cleared']} 메시지\n"
+                  f"**일화 기억:** {result['episodic_memories_cleared']}\n"
+                  f"**의미 기억:** {result['semantic_facts_cleared']} 사실",
+            inline=False
+        )
+        
+        if result['errors']:
+            result_embed.add_field(
+                name="오류",
+                value="\n".join(result['errors']),
+                inline=False
+            )
+            
+        await interaction.followup.send(embed=result_embed, ephemeral=True)
+        logger.warning(f"All memories cleared by user {interaction.user.name} ({interaction.user.id})")
+        
+    @app_commands.command(name="force-consolidation", description="기억 통합을 수동으로 실행합니다 (봇 제작자 전용)")
+    @app_commands.default_permissions(administrator=True)
     async def force_consolidation(self, interaction: discord.Interaction):
         """
         Manually trigger memory consolidation for the current channel.
@@ -216,7 +306,8 @@ class AdminCommands(commands.Cog):
         
         await interaction.followup.send(embed=embed, ephemeral=True)
         
-    @app_commands.command(name="reload-persona", description="페르소나 파일을 다시 로드합니다")
+    @app_commands.command(name="reload-persona", description="페르소나 파일을 다시 로드합니다 (봇 제작자 전용)")
+    @app_commands.default_permissions(administrator=True)
     async def reload_persona(self, interaction: discord.Interaction):
         """
         Reload persona file without restarting the bot.
@@ -246,8 +337,9 @@ class AdminCommands(commands.Cog):
                 ephemeral=True
             )
             
-    @app_commands.command(name="get-last-prompt", description="마지막 LLM 프롬프트를 확인합니다")
+    @app_commands.command(name="get-last-prompt", description="마지막 LLM 프롬프트를 확인합니다 (봇 제작자 전용)")
     @app_commands.describe(user="특정 사용자의 마지막 메시지에 대한 프롬프트 (선택사항)")
+    @app_commands.default_permissions(administrator=True)
     async def get_last_prompt(
         self, 
         interaction: discord.Interaction,
