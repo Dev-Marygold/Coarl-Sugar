@@ -1,6 +1,7 @@
 # Environment variables
 .env
 .env.local
+.cursorrules
 
 # Python
 __pycache__/
