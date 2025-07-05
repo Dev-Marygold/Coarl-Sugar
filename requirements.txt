@@ -3,7 +3,6 @@ discord.py==2.3.2
 
 # LLM and AI Orchestration
 langchain>=0.3.0
-langchain-anthropic>=0.2.0
 langchain-pinecone>=0.2.0
 langchain-community>=0.3.0
 langchain-openai>=0.2.0

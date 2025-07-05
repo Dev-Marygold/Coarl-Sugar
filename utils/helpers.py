@@ -75,7 +75,6 @@ def validate_environment() -> bool:
     """
     required_vars = [
         "DISCORD_TOKEN",
-        "ANTHROPIC_API_KEY",
         "OPENAI_API_KEY",
         "DEVELOPER_ID",
         "CREATOR_NAME",

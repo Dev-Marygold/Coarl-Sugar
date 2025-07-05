@@ -23,9 +23,6 @@ def create_env_file():
     env_values['DEVELOPER_ID'] = input("개발자 Discord ID (숫자): ").strip()
     env_values['PRIVATE_CHANNEL_ID'] = input("비공개 채널 ID (선택사항, Enter로 건너뛰기): ").strip()
     
-    print("\n[ Anthropic Claude API ]")
-    env_values['ANTHROPIC_API_KEY'] = input("Anthropic API 키: ").strip()
-
     print("\n[ OpenAI API ]")
     env_values['OPENAI_API_KEY'] = input("OpenAI API 키: ").strip()
     
@@ -46,9 +43,6 @@ def create_env_file():
 DISCORD_TOKEN={DISCORD_TOKEN}
 DEVELOPER_ID={DEVELOPER_ID}
 PRIVATE_CHANNEL_ID={PRIVATE_CHANNEL_ID}
-
-# Anthropic Claude API
-ANTHROPIC_API_KEY={ANTHROPIC_API_KEY}
 
 # OpenAI API
 OPENAI_API_KEY={OPENAI_API_KEY}
@@ -215,7 +209,7 @@ LOG_LEVEL={LOG_LEVEL}
 - 지나친 냉소와 비관적 말투
 - 의도적으로 상대 감정 상처주는 표현
 - 과도히 길거나 산만한 답변
-- 행동 묘사("미소지으며”,"한숨쉬며” 등) 사용 금지
+- 행동 묘사("미소지으며", "한숨쉬며" 등) 사용 금지
 - 이모티콘 과도하게 사용 (가끔 제한된 상황에서만 가능)
 
 ---

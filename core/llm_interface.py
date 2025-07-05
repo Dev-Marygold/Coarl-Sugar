@@ -1,6 +1,6 @@
 """
 LLM Interface for Lamy.
-Handles all interactions with the Anthropic Claude API and OpenAI GPT-4.1.
+Handles all interactions with OpenAI GPT-4.1 and GPT-4.1-mini.
 """
 
 import os
@@ -11,7 +11,7 @@ import logging
 from pathlib import Path
 import json
 
-from langchain_anthropic import ChatAnthropic
+from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from pydantic import BaseModel, Field
@@ -33,29 +33,26 @@ class LLMResponse(BaseModel):
 class LLMInterface:
     """
     Interface for interacting with Large Language Models.
-    Uses Claude for main responses and GPT-4.1 for utility tasks (cost optimization).
+    Uses GPT-4.1 for main responses and GPT-4.1-mini for utility tasks (cost optimization).
     """
     
     def __init__(self):
-        """Initialize the LLM interface with both Anthropic Claude and OpenAI."""
-        # Claude for main responses
-        anthropic_key = os.getenv("ANTHROPIC_API_KEY")
-        if not anthropic_key:
-            raise ValueError("ANTHROPIC_API_KEY environment variable is not set")
+        """Initialize the LLM interface with OpenAI."""
+        # OpenAI for all tasks
+        openai_key = os.getenv("OPENAI_API_KEY")
+        if not openai_key:
+            raise ValueError("OPENAI_API_KEY environment variable is not set")
             
-        self.llm = ChatAnthropic(
-            model="claude-sonnet-4-20250514",
-            anthropic_api_key=anthropic_key,
+        # GPT-4.1 for main responses
+        self.llm = ChatOpenAI(
+            model="gpt-4.1",
+            openai_api_key=openai_key,
             temperature=0.7,  # Slightly lower for more consistent edgy responses
             max_tokens=1024,  # Reduced for more concise responses
             timeout=30.0
         )
         
-        # OpenAI for utility tasks (summarization, fact extraction)
-        openai_key = os.getenv("OPENAI_API_KEY")
-        if not openai_key:
-            raise ValueError("OPENAI_API_KEY environment variable is not set")
-            
+        # OpenAI client for utility tasks
         self.openai_client = openai.AsyncOpenAI(api_key=openai_key)
         
         # Load persona from file
@@ -212,7 +209,7 @@ class LLMInterface:
 - 지나친 냉소와 비관적 말투
 - 의도적으로 상대 감정 상처주는 표현
 - 과도히 길거나 산만한 답변
-- 행동 묘사("미소지으며”,"한숨쉬며” 등) 사용 금지
+- 행동 묘사("미소지으며","한숨쉬며" 등) 사용 금지
 - 이모티콘 과도하게 사용 (가끔 제한된 상황에서만 가능)
 
 ---
@@ -292,11 +289,11 @@ class LLMInterface:
             return LLMResponse(
                 content=response.content,
                 usage={
-                    "prompt_tokens": response.response_metadata.get("usage", {}).get("input_tokens", 0),
-                    "completion_tokens": response.response_metadata.get("usage", {}).get("output_tokens", 0),
-                    "total_tokens": response.response_metadata.get("usage", {}).get("total_tokens", 0)
+                    "prompt_tokens": response.response_metadata.get("token_usage", {}).get("prompt_tokens", 0),
+                    "completion_tokens": response.response_metadata.get("token_usage", {}).get("completion_tokens", 0),
+                    "total_tokens": response.response_metadata.get("token_usage", {}).get("total_tokens", 0)
                 },
-                model=response.response_metadata.get("model", "claude-sonnet-4-20250514"),
+                model=response.response_metadata.get("model_name", "gpt-4.1"),
                 processing_time=processing_time
             )
             
@@ -310,7 +307,7 @@ class LLMInterface:
     
     async def summarize_conversation(self, messages: List[WorkingMemoryItem]) -> str:
         """
-        Summarize a conversation for memory consolidation using GPT-4.1.
+        Summarize a conversation for memory consolidation using GPT-4.1-mini.
         
         Args:
             messages: List of messages to summarize
@@ -333,19 +330,19 @@ class LLMInterface:
         
         try:
             response = await self.openai_client.chat.completions.create(
-                model="gpt-4.1",
+                model="gpt-4.1-mini",
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=1024,
                 temperature=0.3
             )
             return response.choices[0].message.content
         except Exception as e:
-            logger.error(f"Error summarizing conversation with GPT-4.1: {str(e)}")
+            logger.error(f"Error summarizing conversation with GPT-4.1-mini: {str(e)}")
             return "대화를 정리하려 했는데... 글쎄, 말로 담기엔 너무 복잡했나봐."
     
     async def extract_facts(self, conversation_summary: str) -> List[Dict[str, Any]]:
         """
-        Extract semantic facts from a conversation summary using GPT-4.1
+        Extract semantic facts from a conversation summary using GPT-4.1-mini
         
         Args:
             conversation_summary: Summary of the conversation
@@ -372,7 +369,7 @@ class LLMInterface:
         
         try:
             response = await self.openai_client.chat.completions.create(
-                model="gpt-4.1",
+                model="gpt-4.1-mini",
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=1024,
                 temperature=0.1
@@ -381,7 +378,7 @@ class LLMInterface:
             facts = json.loads(response.choices[0].message.content)
             return facts
         except Exception as e:
-            logger.error(f"Error extracting facts with GPT-4.1: {str(e)}")
+            logger.error(f"Error extracting facts with GPT-4.1-mini: {str(e)}")
             return []
     
     def _build_memory_context(self, memories: List[EpisodicMemoryItem]) -> str:

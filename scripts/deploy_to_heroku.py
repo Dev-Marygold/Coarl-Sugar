@@ -12,7 +12,6 @@ from pathlib import Path
 # 필요한 환경 변수 목록
 REQUIRED_VARS = [
     "DISCORD_TOKEN",
-    "ANTHROPIC_API_KEY", 
     "OPENAI_API_KEY",
     "DEVELOPER_ID",
     "CREATOR_NAME",

@@ -21,7 +21,7 @@
 
 - **언어**: Python 3.10+
 - **디스코드**: discord.py
-- **LLM**: Anthropic Claude 4 Sonnet (메인 응답), OpenAI GPT-4.1 (유틸리티 작업)
+- **LLM**: OpenAI GPT-4.1 (메인 응답), OpenAI GPT-4.1-mini (유틸리티 작업)
 - **벡터 DB**: Pinecone
 - **오케스트레이션**: LangChain
 - **데이터베이스**: SQLite (의미 기억)
@@ -52,9 +52,6 @@ pip install -r requirements.txt
 DISCORD_TOKEN=your_discord_bot_token_here
 DEVELOPER_ID=your_discord_user_id_here
 PRIVATE_CHANNEL_ID=private_channel_for_creator_guardian_interaction
-
-# Anthropic Claude API
-ANTHROPIC_API_KEY=your_anthropic_api_key_here
 
 # OpenAI API
 OPENAI_API_KEY=your_openai_api_key_here
@@ -105,7 +102,6 @@ heroku config:set DEVELOPER_ID=your_discord_user_id_here
 heroku config:set CREATOR_NAME=your_name_here
 
 # API Keys
-heroku config:set ANTHROPIC_API_KEY=your_anthropic_api_key_here
 heroku config:set OPENAI_API_KEY=your_openai_api_key_here
 
 # Pinecone Configuration
