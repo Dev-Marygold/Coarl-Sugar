@@ -15,7 +15,7 @@ import time
 
 from pinecone import Pinecone, ServerlessSpec
 from langchain_pinecone import PineconeVectorStore
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_openai import OpenAIEmbeddings
 import numpy as np
 
 from core.models import (
@@ -93,7 +93,7 @@ class MemoryManager:
                     
                 pc.create_index(
                     name=index_name,
-                    dimension=384,  # Dimension for all-MiniLM-L6-v2 embeddings
+                    dimension=1536,  # Dimension for OpenAI text-embedding-3-small
                     metric='cosine',
                     spec=ServerlessSpec(
                         cloud='aws',
@@ -122,21 +122,22 @@ class MemoryManager:
             else:
                 logger.info(f"Using existing index: {index_name}")
                 
-            # Initialize embeddings with async-friendly approach
-            logger.info("Initializing HuggingFace embeddings...")
-            logger.info("This may take a while on first run as the model needs to be downloaded...")
+            # Initialize OpenAI embeddings
+            logger.info("Initializing OpenAI embeddings...")
             
-            # Set cache directory to avoid permission issues
-            cache_dir = os.path.join(os.path.dirname(__file__), "..", "models_cache")
-            os.makedirs(cache_dir, exist_ok=True)
+            # Check for OpenAI API key
+            openai_key = os.getenv("OPENAI_API_KEY")
+            if not openai_key:
+                raise ValueError("OPENAI_API_KEY environment variable is not set")
             
-            embeddings = HuggingFaceEmbeddings(
-                model_name="sentence-transformers/all-MiniLM-L6-v2",
-                model_kwargs={'device': 'cpu'},
-                encode_kwargs={'normalize_embeddings': True},
-                cache_folder=cache_dir
+            embeddings = OpenAIEmbeddings(
+                model="text-embedding-3-small",
+                openai_api_key=openai_key,
+                chunk_size=1000,  # Number of documents to embed in each request
+                max_retries=3,
+                timeout=30.0
             )
-            logger.info("HuggingFace embeddings initialized successfully")
+            logger.info("OpenAI embeddings initialized successfully")
                 
             # Get the index
             index = pc.Index(index_name)

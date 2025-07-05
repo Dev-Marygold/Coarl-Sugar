@@ -78,7 +78,9 @@ def validate_environment() -> bool:
         "ANTHROPIC_API_KEY",
         "OPENAI_API_KEY",
         "DEVELOPER_ID",
-        "CREATOR_NAME"
+        "CREATOR_NAME",
+        "PINECONE_API_KEY",
+        "PINECONE_INDEX_NAME"
     ]
     
     missing_vars = []

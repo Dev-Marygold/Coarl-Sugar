@@ -78,6 +78,112 @@ LOG_LEVEL=INFO
 python main.py
 ```
 
+## Heroku 배포 가이드
+
+### 1. 사전 준비
+- Heroku 계정 생성
+- Heroku CLI 설치
+- Git 저장소 준비
+
+### 2. Heroku 앱 생성
+```bash
+# Heroku CLI 로그인
+heroku login
+
+# 앱 생성
+heroku create your-lamy-bot-name
+
+# 또는 원클릭 배포
+# GitHub에서 Deploy to Heroku 버튼 클릭
+```
+
+### 3. 환경 변수 설정
+```bash
+# Discord Bot Configuration
+heroku config:set DISCORD_TOKEN=your_discord_bot_token_here
+heroku config:set DEVELOPER_ID=your_discord_user_id_here
+heroku config:set CREATOR_NAME=your_name_here
+
+# API Keys
+heroku config:set ANTHROPIC_API_KEY=your_anthropic_api_key_here
+heroku config:set OPENAI_API_KEY=your_openai_api_key_here
+
+# Pinecone Configuration
+heroku config:set PINECONE_API_KEY=your_pinecone_api_key_here
+heroku config:set PINECONE_INDEX_NAME=lamy-episodic-memory
+heroku config:set PINECONE_ENVIRONMENT=us-east-1
+
+# Optional
+heroku config:set LOG_LEVEL=INFO
+```
+
+### 4. 배포
+```bash
+# 코드 푸시
+git add .
+git commit -m "Ready for Heroku deployment"
+git push heroku main
+
+# 또는 GitHub와 연결된 경우
+# Heroku Dashboard에서 자동 배포 설정
+```
+
+### 5. 워커 다이노 활성화
+```bash
+# 워커 다이노 스케일링 (무료 플랜은 1개까지)
+heroku ps:scale worker=1
+
+# 또는 Heroku Dashboard에서 Resources 탭에서 워커 활성화
+```
+
+### 6. 로그 확인
+```bash
+# 실시간 로그 확인
+heroku logs --tail
+
+# 특정 시점의 로그 확인
+heroku logs --num 100
+```
+
+### 7. 중요 사항
+- **비용**: Heroku 무료 플랜 종료로 인해 최소 $7/월 비용 발생
+- **Pinecone**: 새 인덱스 생성 시 기존 384차원 → 1536차원으로 변경됨
+- **메모리**: 기존 로컬 모델 캐시는 더 이상 필요하지 않음
+- **환경 변수**: 모든 API 키가 올바르게 설정되어야 함
+
+### 8. 데이터베이스 초기화 (중요!) 🔄
+**임베딩 차원 변경으로 인해 Pinecone 인덱스 초기화가 필요합니다.**
+
+```bash
+# 로컬에서 초기화 스크립트 실행 (배포 전에 실행)
+python scripts/reset_pinecone.py
+```
+
+**초기화 내용:**
+- ✅ **SQLite (의미 기억)**: 초기화 불필요 (호환됨)
+- ❌ **Pinecone (일화 기억)**: 384차원 → 1536차원으로 변경 필요
+- ✅ **Working Memory**: 자동 초기화 (메모리상 저장)
+
+**주의사항:**
+- 기존 일화 기억(대화 기록)이 모두 삭제됩니다
+- 의미 기억(학습한 사실들)은 유지됩니다
+- 초기화 후 봇이 새로운 기억을 쌓아나갑니다
+
+### 9. 문제 해결
+```bash
+# 봇 재시작
+heroku restart
+
+# 환경 변수 확인
+heroku config
+
+# 앱 정보 확인
+heroku info
+
+# 인덱스 차원 오류 시 (로컬에서 실행)
+python scripts/reset_pinecone.py
+```
+
 ## 사용 방법
 
 ### 일반 사용자
@@ -96,25 +202,30 @@ python main.py
 
 ```
 lamy-bot/
-├── cogs/               # Discord 봇 기능 모듈
-│   ├── chat_handler.py # 채팅 처리
-│   └── admin_commands.py # 관리자 명령어
-├── core/               # 핵심 비즈니스 로직
-│   ├── models.py       # Pydantic 데이터 모델
-│   ├── llm_interface.py # LLM 인터페이스
-│   ├── memory_manager.py # 메모리 관리
-│   └── orchestration.py # 중앙 오케스트레이션
-├── utils/              # 유틸리티 함수
-│   └── helpers.py      # 헬퍼 함수
-├── data/               # 데이터 저장소
-│   ├── core_identity.json # 라미의 핵심 정체성
-│   └── semantic_memory.db # 의미 기억 DB
-├── logs/               # 로그 파일
-├── .cursorrules        # Cursor AI 규칙
-├── .env                # 환경 변수
-├── requirements.txt    # 의존성 목록
-├── main.py            # 메인 진입점
-└── README.md          # 이 파일
+├── cogs/                    # Discord 봇 기능 모듈
+│   ├── chat_handler.py      # 채팅 처리
+│   └── admin_commands.py    # 관리자 명령어
+├── core/                    # 핵심 비즈니스 로직
+│   ├── models.py            # Pydantic 데이터 모델
+│   ├── llm_interface.py     # LLM 인터페이스
+│   ├── memory_manager.py    # 메모리 관리
+│   └── orchestration.py    # 중앙 오케스트레이션
+├── utils/                   # 유틸리티 함수
+│   └── helpers.py           # 헬퍼 함수
+├── scripts/                 # 유지보수 스크립트
+│   └── reset_pinecone.py    # Pinecone 인덱스 초기화
+├── data/                    # 데이터 저장소
+│   ├── core_identity.json   # 라미의 핵심 정체성
+│   ├── lamy_persona.txt     # 라미의 페르소나
+│   └── semantic_memory.db   # 의미 기억 DB
+├── logs/                    # 로그 파일
+├── Procfile                 # Heroku 배포 설정
+├── runtime.txt              # Python 버전 지정
+├── app.json                 # Heroku 앱 설정
+├── .env                     # 환경 변수
+├── requirements.txt         # 의존성 목록
+├── main.py                  # 메인 진입점
+└── README.md                # 이 파일
 ```
 
 ## 메모리 시스템

@@ -46,4 +46,5 @@ htmlcov/
 
 # Project specific
 chat_history/
-memory_exports/ 
+memory_exports/
+models_cache/ 
