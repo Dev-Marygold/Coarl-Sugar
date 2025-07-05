@@ -1,6 +1,6 @@
 """
 LLM Interface for Lamy.
-Handles all interactions with OpenAI GPT-4.5 and GPT-4.1-mini.
+Handles all interactions with OpenAI chatgpt-4o-latest and GPT-4.1-mini.
 """
 
 import os
@@ -33,7 +33,7 @@ class LLMResponse(BaseModel):
 class LLMInterface:
     """
     Interface for interacting with Large Language Models.
-    Uses GPT-4.5 for main responses and GPT-4.1-mini for utility tasks (cost optimization).
+    Uses chatgpt-4o-latest for main responses and GPT-4.1-mini for utility tasks (cost optimization).
     """
     
     def __init__(self):
@@ -43,9 +43,9 @@ class LLMInterface:
         if not openai_key:
             raise ValueError("OPENAI_API_KEY environment variable is not set")
             
-        # GPT-4.5 for main responses
+        # chatgpt-4o-latest for main responses
         self.llm = ChatOpenAI(
-            model="gpt-4.5",
+            model="chatgpt-4o-latest",
             openai_api_key=openai_key,
             temperature=0.7,  # Slightly lower for more consistent edgy responses
             max_tokens=1024,  # Reduced for more concise responses
@@ -293,7 +293,7 @@ class LLMInterface:
                     "completion_tokens": response.response_metadata.get("token_usage", {}).get("completion_tokens", 0),
                     "total_tokens": response.response_metadata.get("token_usage", {}).get("total_tokens", 0)
                 },
-                model=response.response_metadata.get("model_name", "gpt-4.5"),
+                model=response.response_metadata.get("model_name", "chatgpt-4o-latest"),
                 processing_time=processing_time
             )
             

@@ -21,7 +21,7 @@
 
 - **언어**: Python 3.10+
 - **디스코드**: discord.py
-- **LLM**: OpenAI GPT-4.5 (메인 응답), OpenAI GPT-4.1-mini (유틸리티 작업)
+- **LLM**: OpenAI chatgpt-4o-latest (메인 응답), OpenAI GPT-4.1-mini (유틸리티 작업)
 - **벡터 DB**: Pinecone
 - **오케스트레이션**: LangChain
 - **데이터베이스**: SQLite (의미 기억)
