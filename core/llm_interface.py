@@ -47,8 +47,8 @@ class LLMInterface:
         self.llm = ChatOpenAI(
             model="chatgpt-4o-latest",
             openai_api_key=openai_key,
-            temperature=0.7,  # Slightly lower for more consistent edgy responses
-            max_tokens=1024,  # Reduced for more concise responses
+            temperature=1.0,
+            max_tokens=1024,
             timeout=30.0
         )
         
